@@ -1,12 +1,9 @@
-from sentence_transformers import SentenceTransformer
 from sqlalchemy import text
-from app.config.config import settings
 from app.db_utils.database import engine
-
-model = SentenceTransformer(settings.EMBEDDING_MODEL)
+from app.services.embeddings import embed_chunks
 
 def search_pgvector(query: str, top_k=5) -> list[dict]:
-    query_vec = model.encode([query])[0].tolist()
+    query_vec = embed_chunks([query])[0]
     sql = text(f"""
     SELECT content
     FROM document_chunks

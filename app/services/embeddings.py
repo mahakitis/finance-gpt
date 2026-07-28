@@ -3,12 +3,21 @@ from app.models.document import Document
 from app.models.document_chunk import DocumentChunk
 from typing import List
 from app.config.config import settings
-from sentence_transformers import SentenceTransformer  
+from fastembed import TextEmbedding
 
-model = SentenceTransformer(settings.EMBEDDING_MODEL)
+_model = None
+
+def _get_model():
+    """Lazy-load the embedding model on first use, not at import time.
+    Keeps startup memory low so the app fits in Render's free-tier RAM limit."""
+    global _model
+    if _model is None:
+        _model = TextEmbedding(model_name=settings.EMBEDDING_MODEL)
+    return _model
 
 def embed_chunks(chunks: List[str]):
-    return model.encode(chunks).tolist()
+    model = _get_model()
+    return [vec.tolist() for vec in model.embed(chunks)]
 
 def store_document_with_embeddings(db: Session, filename: str, chunks: List[str]):
     embeddings = embed_chunks(chunks)
